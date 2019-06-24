@@ -1,5 +1,7 @@
 # Analyzing NYC High School Data
 
+Note: Use the [Jupyter nbviewer](https://nbviewer.jupyter.org/github/edwinfl49/nyc-hs-analysis/blob/master/Analyzing%20NYC%20High%20School%20Data.ipynb) if github's viewer does not load.
+
 The main purposes of in this project are to
 - Combined different datasets together to conduct analysis
 - Experiment with the Altair library to in providing visualization
