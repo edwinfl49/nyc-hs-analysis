@@ -8,7 +8,6 @@
 # Additionally, we will also experiment with using the Altair library for visualizations.
 #%% [markdown]
 # ## Load and Transform Data
-
 #%%
 import pandas as pd
 import numpy as np
@@ -32,10 +31,8 @@ data = {}
 for f in data_files:
     d = pd.read_csv("data/schools/{0}".format(f))
     data[f.replace(".csv", "")] = d
-
 #%% [markdown]
 # Our datasets are not encoded in a standard format. There isn't really a way to tell except to try loading and see how the data looks like.
-
 #%%
 all_survey = pd.read_csv("data/schools/survey_all.txt", delimiter="\t", encoding='windows-1252')
 d75_survey = pd.read_csv("data/schools/survey_d75.txt", delimiter="\t", encoding='windows-1252')
@@ -49,7 +46,6 @@ data["survey"] = survey
 #%% [markdown]
 # When working with multiple datasets, a common field is required to join them together into one set. In many datasets, it may not be obvious what that key field is. 
 # Sometimes, a different key is required for each pairing of sets. We can use DBN as our key column for all sets. This will require additional cleaning though.
-
 #%%
 data["hs_directory"]["DBN"] = data["hs_directory"]["dbn"]
 
@@ -62,10 +58,8 @@ def pad_csd(num):
     
 data["class_size"]["padded_csd"] = data["class_size"]["CSD"].apply(pad_csd)
 data["class_size"]["DBN"] = data["class_size"]["padded_csd"] + data["class_size"]["SCHOOL CODE"]
-
 #%% [markdown]
 # Next is to convert our numeric columns to actually be numeric.
-
 #%%
 cols = ['SAT Math Avg. Score', 'SAT Critical Reading Avg. Score', 'SAT Writing Avg. Score']
 for c in cols:
@@ -88,10 +82,8 @@ data["hs_directory"]["lon"] = data["hs_directory"]["Location 1"].apply(find_lon)
 
 data["hs_directory"]["lat"] = pd.to_numeric(data["hs_directory"]["lat"], errors="coerce")
 data["hs_directory"]["lon"] = pd.to_numeric(data["hs_directory"]["lon"], errors="coerce")
-
 #%% [markdown]
 # Next, we'll do some some filtering and grouping to get the data in a more analysis-friendly format.
-
 #%%
 class_size = data["class_size"]
 class_size = class_size[class_size["GRADE "] == "09-12"]
@@ -105,7 +97,6 @@ data["demographics"] = data["demographics"][data["demographics"]["schoolyear"] =
 
 data["graduation"] = data["graduation"][data["graduation"]["Cohort"] == "2006"]
 data["graduation"] = data["graduation"][data["graduation"]["Demographic"] == "Total Cohort"]
-
 #%% [markdown]
 # AP Exam scores were not loaded as numeric, so we'll need to convert them.
 #%%
@@ -113,7 +104,6 @@ cols = ['AP Test Takers ', 'Total Exams Taken', 'Number of Exams with scores 3 4
 
 for col in cols:
     data["ap_2010"][col] = pd.to_numeric(data["ap_2010"][col], errors="coerce")
-
 #%% [markdown]
 # Finally, we'll use `merge` to join the datasets together. Note that the `how` argument means that all rows from the `combined` dataframe will be retained even if a match in the `ap_2010` is not found.
 #%%
@@ -129,7 +119,6 @@ for m in to_merge:
 
 combined = combined.fillna(combined.mean())
 combined = combined.fillna(0)
-
 #%% [markdown]
 # We add a school district column as that will be helpful for when we map the data.
 #%%
@@ -166,14 +155,12 @@ alt.Chart(survey_fields_corr).mark_bar().encode(
     x='field',
     y='sat_score_corr'
 )
-
 #%% [markdown]
 # This a bar graph that compares SAT scores with responders on various school surveys. For example, the comp_p_11 column means the communication score from parents who answered the survey. In this case, where the communication score was reated poorly, this indicates a very loose negative correlation with SAT score.
 # 
 # The highest two values are the N_s and the N_p columns, which are the number of student and parent respondents respectively. It should be expected that these would be high given that these fields are related to student enrollment. The next highest are the aca_s_11, saf_s_11, saf_t_11, and saf_tot_11 columns, the _saf_ columns means Safety and Respect. _Aca_ means academic expectations.
 # 
 # There appears to be a definitive positive correlation between the scores and this Safety/Respect category. For academic expectations, the response is higher for students rather than teachers. Overall correlations howevwer, are fairly weak.
-
 #%%
 alt.Chart(combined).mark_point().encode(
     x=alt.X('saf_s_11:Q', 
@@ -181,7 +168,6 @@ alt.Chart(combined).mark_point().encode(
     y=alt.Y('sat_score:Q',
            scale=alt.Scale(zero=False))
 )
-
 #%% [markdown]
 # There appears to be a weak positive correlation between safety score and SAT score. We can generally see that a low safety score will result in a low SAT score. A high safety score however, has a weaker correlation and less likely to result in a high SAT score.
 # 
@@ -209,11 +195,8 @@ alt.Chart(combined).mark_point().encode(
 # Links for reference:
 # - [Issue reported on Altair's github](https://github.com/altair-viz/altair/issues/588)
 # - [`gpdvega` github](https://github.com/altair-viz/altair/issues/588)
-
 #%%
 safs_by_dist = combined.groupby('school_dist')[['lat','lon','saf_s_11']].mean()
-
-
 #%%
 nysd = gpd.read_file('shapes/nysd/nysd.shp')
 nysd = nysd.to_crs({'init': 'epsg:4326'})
@@ -221,8 +204,6 @@ safs_by_dist.index = pd.to_numeric(safs_by_dist.index)
 geo_safs_by_dist = nysd.join(safs_by_dist, how='inner')
 geo_safs_by_dist = geo_safs_by_dist.drop(['lat','lon'], axis=1)
 geo_safs_by_dist = geo_safs_by_dist.to_crs({'init': 'epsg:4326'})
-
-
 #%%
 # gpdvega library enables using a GeoDataFrame directly with Altair
 alt.Chart(geo_safs_by_dist).mark_geoshape().encode(
@@ -233,12 +214,10 @@ alt.Chart(geo_safs_by_dist).mark_geoshape().encode(
     height=500,
     title='Safety Score by NYC School District'
 )
-
 #%% [markdown]
 # Darker shades show a higher score, while lighter scores show a lower score. We can see some parts of the Bronx and Queens that have higher scores.
 #%% [markdown]
 # ## Visualising Relation Between Ethnicity and Score
-
 #%%
 ethnicities = ['white_per','asian_per','black_per','hispanic_per']
 eth_corr = pd.DataFrame(combined.corr()['sat_score'][ethnicities]).reset_index()
@@ -247,19 +226,15 @@ alt.Chart(eth_corr).mark_bar().encode(
     alt.X('ethnicity_per:N'),
     alt.Y('sat_score_corr:Q', scale=alt.Scale(domain=(-.9,.9)))
 ).properties(width=200)
-
 #%% [markdown]
 # A quick bar plot shows us that whites and Asians tend to have higher SAT scores, while blacks and Hispanics have a negative correlation with SAT score, although for the latter two, the correlation coefficient is not high. This could be due to a lack of funding for schools in certain neighborhoods that are more likely to have a higher percentage of black or hispanic students.
-
 #%%
 alt.Chart(combined).mark_point().encode(
     x='hispanic_per',
     y='sat_score'
 )
-
 #%% [markdown]
 # Plotting Hispanics againist SAT score shows us a negative, non-linear relationship between Hispanics in a school versus SAT Score.
-
 #%%
 combined.columns[151:200]
 
@@ -267,19 +242,15 @@ combined.columns[151:200]
 #%%
 cols_of_interest = ['school_name', 'boro', 'school_type', 'total_students','hispanic_per', 'sat_score']
 combined[combined['hispanic_per'] > 95][cols_of_interest]
-
 #%% [markdown]
 # There are only eight schools with a 95% Hispanic students. Of note with these schools is that they are all relatively small schools. About half of these schools are specialised schools. Potentially for ESL students as suggested by some of the names.
-
 #%%
 cols_of_interest = ['school_name', 'boro', 'school_type', 'total_students', 'hispanic_per', 'sat_score']
 combined[(combined['hispanic_per'] < 10) & (combined['sat_score'] > 1800)][cols_of_interest]
-
 #%% [markdown]
 # On the opposite end, looking at the top schools by score listed, these are all specialised schools as defined by the `school_type` field. Coincidentally, there are five schools that match the criteria and each borough is represented by one school in the list.
 #%% [markdown]
 # ## Visualising Correlations Between Gender and SAT Score
-
 #%%
 gender_corr = combined.corr()['sat_score'][['male_per', 'female_per']].reset_index()
 gender_corr = gender_corr.rename(columns={'index': 'gender_per', 'sat_score':'sat_score_corr'})
@@ -287,36 +258,27 @@ alt.Chart(gender_corr).mark_bar().encode(
     alt.X('gender_per:N'),
     alt.Y('sat_score_corr:Q', scale=alt.Scale(domain=(-1,1)))
 ).properties(width=150)
-
 #%% [markdown]
 # Plotting the correlation between genders and scores, we see that females have a higher correlation. However, as indicated by the correlation coefficients, both are weakly correlated.
-
 #%%
 alt.Chart(combined).mark_point().encode(x='female_per', y='sat_score')
-
 #%% [markdown]
 # A scatter plot between these two columns shows us that there isn't much of a correlation between score and the percent of girls in schools. We can see that most schools generally have a even gender ratio. One interesting observation we can see is that the highest scores look like they come from schools with balanced gender ratios.
 # 
 # Note that in this dataset, there are only two schools where the sum of the male_per and female_per columns do not equal 100.
-
 #%%
 g = combined['male_per'] + combined['female_per']
 g.value_counts()
-
-
 #%%
 combined[(combined['female_per'] > 60) & (combined['sat_score'] > 1700)][cols_of_interest]
-
 #%% [markdown]
 # A closer examination of the majority female schools with high SAT scores reveals that the schools listed here appear to be regarded highly in academics. These schools are highly selective and many of their students continue to high school.
 #%% [markdown]
 # ## AP Exams Impact on SAT Scores
 # The next item examined is how AP Exams may affect SAT scores. We are expecting that schools with more AP test takers will have higher average scores. Since the total enrollment of scores tends has a strong correlation with the average SAT score for a school, we will examine the percent of AP test takers in a school instead, similar to how we examined the ratios of students in prior sections.
-
 #%%
 combined['ap_per'] = combined['AP Test Takers '] / combined['total_enrollment']
 alt.Chart(combined).mark_point().encode(x='ap_per', y='sat_score')
-
 #%% [markdown]
 # Examining the scatter plot of the percent of students that take AP exams versus SAT Score, we do see some evidence that it positively affects SAT scores. However, we can also see that the schools with the highest percentages do not show a higher score. 
 #%% [markdown]
@@ -328,4 +290,3 @@ alt.Chart(combined).mark_point().encode(x='ap_per', y='sat_score')
 # - Figure out which neighborhoods have the best schools
 # - Investigate differences between teacher, parent, and student responses to the surveys
 # - Classifying schools based on SAT scores and other attributes (this starts to dip into ML territory)
-
