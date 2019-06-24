@@ -39,7 +39,31 @@ d75_survey = pd.read_csv("data/schools/survey_d75.txt", delimiter="\t", encoding
 survey = pd.concat([all_survey, d75_survey], axis=0, sort=False)
 
 survey["DBN"] = survey["dbn"]
-sruvey_fields = survey.columns
+survey_fields = [
+    "DBN", 
+    "rr_s", 
+    "rr_t", 
+    "rr_p", 
+    "N_s", 
+    "N_t", 
+    "N_p", 
+    "saf_p_11", 
+    "com_p_11", 
+    "eng_p_11", 
+    "aca_p_11", 
+    "saf_t_11", 
+    "com_t_11", 
+    "eng_t_11", 
+    "aca_t_11", 
+    "saf_s_11", 
+    "com_s_11", 
+    "eng_s_11", 
+    "aca_s_11", 
+    "saf_tot_11", 
+    "com_tot_11", 
+    "eng_tot_11", 
+    "aca_tot_11",
+]
 
 survey = survey.loc[:,survey_fields]
 data["survey"] = survey
@@ -146,7 +170,6 @@ print(correlations.sort_values(ascending=False).head(20))
 #%%
 survey_fields.remove("DBN")
 #%%
-get_ipython().run_line_magic('matplotlib', 'inline')
 combined.corr()["sat_score"][survey_fields]
 #%%
 survey_fields_corr = pd.DataFrame(combined.corr()['sat_score'][survey_fields]).reset_index()
