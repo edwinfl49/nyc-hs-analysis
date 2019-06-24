@@ -7,7 +7,7 @@
 # 
 # Additionally, we will also experiment with using the Altair library for visualizations.
 #%% [markdown]
-# # Read in the data
+# ## Load and Transform Data
 
 #%%
 import pandas as pd
@@ -34,7 +34,7 @@ for f in data_files:
     data[f.replace(".csv", "")] = d
 
 #%% [markdown]
-# # Read in the surveys
+# Our datasets are not encoded in a standard format. There isn't really a way to tell except to try loading and see how the data looks like.
 
 #%%
 all_survey = pd.read_csv("data/schools/survey_all.txt", delimiter="\t", encoding='windows-1252')
@@ -46,11 +46,9 @@ sruvey_fields = survey.columns
 
 survey = survey.loc[:,survey_fields]
 data["survey"] = survey
-
 #%% [markdown]
-# # Add DBN columns
-#%% [markdown]
-# The DBN column is the key field that will be used to join the various datasets together.
+# When working with multiple datasets, a common field is required to join them together into one set. In many datasets, it may not be obvious what that key field is. 
+# Sometimes, a different key is required for each pairing of sets. We can use DBN as our key column for all sets. This will require additional cleaning though.
 
 #%%
 data["hs_directory"]["DBN"] = data["hs_directory"]["dbn"]
@@ -66,7 +64,7 @@ data["class_size"]["padded_csd"] = data["class_size"]["CSD"].apply(pad_csd)
 data["class_size"]["DBN"] = data["class_size"]["padded_csd"] + data["class_size"]["SCHOOL CODE"]
 
 #%% [markdown]
-# # Convert columns to numeric
+# Next is to convert our numeric columns to actually be numeric.
 
 #%%
 cols = ['SAT Math Avg. Score', 'SAT Critical Reading Avg. Score', 'SAT Writing Avg. Score']
@@ -92,7 +90,7 @@ data["hs_directory"]["lat"] = pd.to_numeric(data["hs_directory"]["lat"], errors=
 data["hs_directory"]["lon"] = pd.to_numeric(data["hs_directory"]["lon"], errors="coerce")
 
 #%% [markdown]
-# # Condense datasets
+# Next, we'll do some some filtering and grouping to get the data in a more analysis-friendly format.
 
 #%%
 class_size = data["class_size"]
@@ -109,8 +107,7 @@ data["graduation"] = data["graduation"][data["graduation"]["Cohort"] == "2006"]
 data["graduation"] = data["graduation"][data["graduation"]["Demographic"] == "Total Cohort"]
 
 #%% [markdown]
-# # Convert AP scores to numeric
-
+# AP Exam scores were not loaded as numeric, so we'll need to convert them.
 #%%
 cols = ['AP Test Takers ', 'Total Exams Taken', 'Number of Exams with scores 3 4 or 5']
 
@@ -118,8 +115,7 @@ for col in cols:
     data["ap_2010"][col] = pd.to_numeric(data["ap_2010"][col], errors="coerce")
 
 #%% [markdown]
-# # Combine the datasets
-
+# Finally, we'll use `merge` to join the datasets together. Note that the `how` argument means that all rows from the `combined` dataframe will be retained even if a match in the `ap_2010` is not found.
 #%%
 combined = data["sat_results"]
 
@@ -135,16 +131,14 @@ combined = combined.fillna(combined.mean())
 combined = combined.fillna(0)
 
 #%% [markdown]
-# # Add a school district column for mapping
-
+# We add a school district column as that will be helpful for when we map the data.
 #%%
 def get_first_two_chars(dbn):
     return dbn[0:2]
 
 combined["school_dist"] = combined["DBN"].apply(get_first_two_chars)
-
 #%% [markdown]
-# # Find correlations
+# ## Find correlations
 
 #%%
 correlations = combined.corr()
@@ -156,18 +150,15 @@ print(correlations.sort_values(ascending=False).head(20))
 # - Scores on the individual portions correlate highly, but is not useful to us since the individual portions make up the total SAT score
 # - A high number of students will naturally lead to higher scores due to more chances for a high scores to occur
 #%% [markdown]
-# # Plotting survey correlations
-
+# ## Plotting survey correlations
 #%%
-# Remove DBN since it's a unique identifier, not a useful numerical value for correlation.
+# Let's focus on the correlations between SAT score and the survey fields.
+# First, let's remove DBN since it's a unique identifier, which is not useful for correlation.
+#%%
 survey_fields.remove("DBN")
-
-
 #%%
 get_ipython().run_line_magic('matplotlib', 'inline')
-combined.corr()["sat_score"][survey_fields] #.plot.bar()
-
-
+combined.corr()["sat_score"][survey_fields]
 #%%
 survey_fields_corr = pd.DataFrame(combined.corr()['sat_score'][survey_fields]).reset_index()
 survey_fields_corr = survey_fields_corr.rename(columns={'index': 'field', 'sat_score':'sat_score_corr'})
